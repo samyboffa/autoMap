@@ -41,22 +41,101 @@ const data = [
   },
 ];
 
+const scanPage = async (page) => {
+  for (let j = 0; j < data.length; j++) {
+    // await page.waitForSelector(`.styles_itemAll__3hkDt`);
+    // await page.waitForTimeout(2000);
+    // await page.click('.styles_itemAll__3hkDt');
+    await page.waitForTimeout(5000);
+    await page.waitForSelector(`img[src="${data[j].image}"]`);
+    await page.waitForTimeout(2000);
+    const icons = await page.$$(`img[src="${data[j].image}"]`);
+    if (icons.length > 1) {
+      await page.waitForTimeout(2000);
+      console.log(data[j].plante, icons.length);
+      //await icons[icons.length - 1].click();
+      // await page.waitForTimeout(2000);
+
+      for (let i = 0; i < icons.length - 1; i++) {
+        await page.waitForTimeout(2000);
+        console.log('object');
+        await icons[i].click();
+        console.log(i);
+        await page.waitForTimeout(2000);
+        if (await page.$('h5')) {
+          let title = await page.$eval('h5', (lis) => lis.textContent);
+          console.log(title);
+
+          let content = await page.$eval('.table-hover', (lis) => lis.textContent);
+          console.log(content);
+          await page.waitForTimeout(2000);
+
+          await page.waitForSelector(
+            'path[d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"]'
+          );
+
+          await page.click(
+            'path[d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"]'
+          );
+        }
+      }
+    } else {
+      console.log(`${data[j].plante} inexistante sur cette zone`);
+    }
+  }
+};
+
+const positionMiddle = async (page) => {
+  await page.mouse.click(10, 400);
+  for (let i = 0; i < 9; i++) {
+    await page.waitForTimeout(1000);
+
+    await page.keyboard.press('ArrowDown');
+  }
+  await page.waitForTimeout(1000);
+
+  await page.keyboard.press('+');
+  await page.waitForTimeout(1000);
+  await page.keyboard.press('+');
+};
+
+const nextBlocRight = async (page) => {
+  for (let i = 0; i < 12; i++) {
+    await page.waitForTimeout(1000);
+    await page.keyboard.press('ArrowRight');
+  }
+};
+
 const launchScript = async () => {
   try {
     const browser = await puppeteer.launch({
       headless: false,
       args: ['--no-sandbox'],
     });
+    //const browser = await playwright.chromium.launch({ headless: false });
     const page = await browser.newPage({ waitUntil: 'networkidle0' });
-    page.setViewport({ width: 1300, height: 600 });
+    page.setViewport({ width: 1350, height: 600 });
 
     await page.setDefaultTimeout(60000);
     await page.goto('https://moisson-live.com/');
+    // message
     await page.waitForTimeout(7000);
-
     await page.mouse.click(10, 400);
+    //positioning in the middle
+    await page.waitForTimeout(1000);
+    await positionMiddle(page);
+    await page.waitForTimeout(1000);
+    await scanPage(page);
+
+    for (let i = 0; i < 3; i++) {
+      await nextBlocRight(page);
+      await scanPage(page);
+    }
+
+    /*
     await page.waitForTimeout(1000);
     await page.mouse.wheel({ deltaY: 100 });
+    
     await page.waitForTimeout(3000);
     await page.mouse.move(600, 400, { steps: 50 });
 
@@ -142,7 +221,7 @@ const launchScript = async () => {
     // await page.waitForSelector('.leaflet-marker-icon');
     // await page.waitForTimeout(5000);
     // const icons = await page.$$('.leaflet-marker-icon');
-    // console.log(icons.length);
+    // console.log(icons.length);*/
   } catch (err) {
     console.log(err);
   }
