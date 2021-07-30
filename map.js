@@ -125,9 +125,10 @@ const launchScript = async () => {
     await page.waitForTimeout(1000);
     await positionMiddle(page);
     await page.waitForTimeout(1000);
-    await scanPage(page);
 
-    for (let i = 0; i < 3; i++) {
+    //api-v2.moisson-live.com/rapeseed-observations?coordinates[within_box]=[42.261049,-6.745605,51.944264879028765,8.833007812500002]&season=2021
+
+    https: for (let i = 0; i < 3; i++) {
       await nextBlocRight(page);
       await scanPage(page);
     }
