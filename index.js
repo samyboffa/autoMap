@@ -3,14 +3,19 @@ const { Parser } = require('json2csv');
 const fs = require('fs');
 
 const coordinates = [
-  [48, -5.1, 51.2, -2],
-  [48, -2, 51.2, 1],
-  [48, 1, 51.2, 4],
-  [48, 4, 51.2, 8.2],
+  //nord
+  [48, -5.1, 51.2, -3],
+  [48, -3, 51.2, -1],
+  [48, -1, 51.2, 1],
+  [48, 1, 51.2, 3],
+  [48, 3, 51.2, 5],
+  [48, 5, 51.2, 8.2],
+  //centre
   [45, -5.1, 48, -2],
   [45, -2, 48, 1],
   [45, 1, 48, 4],
   [45, 4, 48, 8.2],
+  //sud
   [42, -5.1, 45, -2],
   [42, -2, 45, 1],
   [42, 1, 45, 4],
@@ -49,38 +54,44 @@ let plantes = [
   },
 ];
 
+const checkDuplicateAndInsert = (reponse, plantes) => {
+  reponse.forEach((el) => {
+    let found = plantes.find((elem) => elem.id === el.id);
+    if (!found) {
+      plantes.push(el);
+    }
+  });
+};
+
 const scanMap = async (plantes) => {
   for (let i = 0; i < coordinates.length; i++) {
-    console.log('zone', i + 1);
+    console.log('scanning zone : ', i + 1);
     for (let j = 0; j < plantes.length; j++) {
       const res = await axios.get(`https://api-v2.moisson-live.com/${plantes[j].name}-observations?coordinates[within_box]=${coordinates[i]}&season=2021&category=${plantes[j].category}`, {
         headers: {
           accept: 'application/ld+json',
         },
       });
-
-      plantes[j].data = [...plantes[j].data, ...res.data['hydra:member']];
+      const reponse = res.data['hydra:member'];
+      await checkDuplicateAndInsert(reponse, plantes[j].data);
     }
   }
   return plantes;
 };
 
-const run = async () => {
-  const fields = ['id', 'createdAt', 'category', 'variety', 'yield', 'humidity', 'yieldNotation', 'nitrogenQuantityUsed', 'nitrogenProductUsed', 'comment', 'cultivationMethod', 'place', 'soldVolume', 'sowingWeek', 'coordinates', 'image'];
-  const opts = { fields: fields };
-
-  const parser = new Parser(opts);
-
-  plantes = await scanMap(plantes);
-
-  plantes.forEach((el) => {
-    console.log(el.data.length);
+const generateFiles = async (plantes) => {
+  plantes.forEach((plante) => {
+    const opts = { fields: plante.fields };
+    const parser = new Parser(opts);
+    console.log(plante.name, plante.data.length);
+    const csv = parser.parse(plante.data);
+    fs.writeFileSync(`${plante.name}.csv`, csv);
   });
-  console.log(plantes[0].data[0]);
-  console.log(plantes[1].data[0]);
-  console.log(plantes[2].data[0]);
-  console.log(plantes[3].data[0]);
-  console.log(plantes[4].data[0]);
+};
+
+const run = async () => {
+  plantes = await scanMap(plantes);
+  await generateFiles(plantes);
 };
 
 run();
