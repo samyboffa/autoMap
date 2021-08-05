@@ -1,6 +1,6 @@
 const axios = require('axios');
-const { Parser } = require('json2csv');
 const fs = require('fs');
+const { google } = require('googleapis');
 
 const coordinates = [
   //nord
@@ -27,30 +27,35 @@ let plantes = [
     category: '',
     data: [],
     fields: ['@id', '@type', 'id', 'createdAt', 'variety', 'yield', 'humidity', 'yieldNotation', 'nitrogenQuantityUsed', 'nitrogenProductUsed', 'comment', 'cultivationMethod', 'place', 'soldVolume', 'sowingWeek', 'coordinates', 'image'],
+    spreadsheetId: '1UkrhIDJ1izFpl5RDEaDJDuyiycSTEktOnS_Saw0mnmw',
   },
   {
     name: 'sunflower',
     category: '',
     data: [],
     fields: ['@id', '@type', 'specificWeight', 'id', 'createdAt', 'variety', 'yield', 'humidity', 'yieldNotation', 'nitrogenQuantityUsed', 'nitrogenProductUsed', 'comment', 'cultivationMethod', 'place', 'soldVolume', 'sowingWeek', 'coordinates', 'image'],
+    spreadsheetId: '1TkKYmakLZOb4Ton9xr9sV0QIcHRKyzqw91FVRZXQ6VM',
   },
   {
     name: 'corn',
     category: '',
     data: [],
     fields: ['@id', '@type', 'id', 'createdAt', 'variety', 'yield', 'humidity', 'yieldNotation', 'nitrogenQuantityUsed', 'nitrogenProductUsed', 'comment', 'cultivationMethod', 'place', 'soldVolume', 'sowingWeek', 'coordinates', 'image'],
+    spreadsheetId: '1PIOFlqrRo5-9-teFB-4LzKsXAtlIoQzczP5dahmIhnw',
   },
   {
     name: 'wheat',
     category: '',
     data: [],
     fields: ['@id', '@type', 'category', 'specificWeight', 'protein', 'fallingNumber', 'id', 'createdAt', 'variety', 'yield', 'humidity', 'yieldNotation', 'nitrogenQuantityUsed', 'nitrogenProductUsed', 'comment', 'cultivationMethod', 'place', 'soldVolume', 'sowingWeek', 'coordinates', 'image'],
+    spreadsheetId: '1bHqRhDR__DxzFp5Uk8Vso5JP3okEQ_4kHZ74NBS7LgY',
   },
   {
     name: 'barley',
     category: '',
     data: [],
     fields: ['@id', '@type', 'category', 'specificWeight', 'id', 'createdAt', 'variety', 'yield', 'humidity', 'yieldNotation', 'nitrogenQuantityUsed', 'nitrogenProductUsed', 'comment', 'cultivationMethod', 'place', 'soldVolume', 'sowingWeek', 'coordinates', 'image'],
+    spreadsheetId: '1e4sRt9PckYL5bFbsFmiv-mM571slv3SHovP8UjQalJU',
   },
 ];
 
@@ -79,19 +84,95 @@ const scanMap = async (plantes) => {
   return plantes;
 };
 
-const generateFiles = async (plantes) => {
-  plantes.forEach((plante) => {
-    const opts = { fields: plante.fields };
-    const parser = new Parser(opts);
-    console.log(plante.name, plante.data.length);
-    const csv = parser.parse(plante.data);
-    fs.writeFileSync(`${plante.name}.csv`, csv);
+const loginGoogle = async () => {
+  const auth = new google.auth.GoogleAuth({
+    keyFile: 'credentials.json',
+    scopes: 'https://www.googleapis.com/auth/spreadsheets',
+  });
+  const authClientObject = await auth.getClient();
+  return authClientObject;
+};
+
+const updateSheets = async (plantes) => {
+  const authClientObject = await loginGoogle();
+  const sheets = google.sheets({ version: 'v4', auth: authClientObject });
+  plantes.forEach(async (plante) => {
+    //clearing sheets
+    const clearRequest = {
+      spreadsheetId: plante.spreadsheetId,
+      range: `${plante.name}!A2:ZZZ`,
+    };
+    const ClearResponse = await sheets.spreadsheets.values.clear(clearRequest);
+    console.log('removing old data : ', plante.name, ClearResponse.statusText);
+
+    let values = plante.data.map((el) => {
+      return Object.values(el);
+    });
+
+    const addRequest = {
+      spreadsheetId: plante.spreadsheetId,
+      range: `${plante.name}!A2`,
+      valueInputOption: 'USER_ENTERED',
+      resource: {
+        values,
+      },
+    };
+    try {
+      const addResponse = await sheets.spreadsheets.values.append(addRequest);
+      console.log('adding new data : ', plante.name, addResponse.statusText);
+    } catch (error) {
+      console.log(error);
+    }
   });
 };
+const test = [
+  {
+    '@id': '/barley-observations/60f45352d6a5da764f40fa92',
+    '@type': 'BarleyObservation',
+    category: 'winter',
+    specificWeight: 66,
+    id: '60f45352d6a5da764f40fa92',
+    createdAt: '2021-07-18T16:14:10+00:00',
+    variety: null,
+    yield: 82,
+    humidity: 13,
+    yieldNotation: 4,
+    nitrogenQuantityUsed: 140,
+    nitrogenProductUsed: 'Ammonitrate',
+    comment: null,
+    cultivationMethod: 'conventional',
+    place: '29840 Lanildut',
+    soldVolume: 'Tout vendu',
+    sowingWeek: null,
+    coordinates: { latitude: 48.4792, longitude: -4.7397 },
+    image: null,
+  },
+  {
+    '@id': '/barley-observations/60f45352d6a5da764f40fa92',
+    '@type': 'BarleyObservation',
+    category: 'winter',
+    specificWeight: 66,
+    id: '60f45352d6a5da764f40fa92',
+    createdAt: '2021-07-18T16:14:10+00:00',
+    variety: null,
+    yield: 82,
+    humidity: 13,
+    yieldNotation: 4,
+    nitrogenQuantityUsed: 140,
+    nitrogenProductUsed: 'Ammonitrate',
+    comment: null,
+    cultivationMethod: 'conventional',
+    place: '29840 Lanildut',
+    soldVolume: 'Tout vendu',
+    sowingWeek: null,
+    coordinates: { latitude: 48.4792, longitude: -4.7397 },
+    image: null,
+  },
+];
 
 const run = async () => {
   plantes = await scanMap(plantes);
-  await generateFiles(plantes);
+  await updateSheets(plantes);
 };
 
 run();
