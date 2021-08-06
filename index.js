@@ -1,5 +1,4 @@
 const axios = require('axios');
-const fs = require('fs');
 const { google } = require('googleapis');
 
 const coordinates = [
@@ -104,9 +103,15 @@ const updateSheets = async (plantes) => {
     };
     const ClearResponse = await sheets.spreadsheets.values.clear(clearRequest);
     console.log('removing old data : ', plante.name, ClearResponse.statusText);
-
+    //putting values in array
     let values = plante.data.map((el) => {
       return Object.values(el);
+    });
+    //convertings objects values to strings
+    values = values.map((obj) => {
+      return (obj = obj.map((elem) => {
+        return (elem = JSON.stringify(elem));
+      }));
     });
 
     const addRequest = {
@@ -117,58 +122,11 @@ const updateSheets = async (plantes) => {
         values,
       },
     };
-    try {
-      const addResponse = await sheets.spreadsheets.values.append(addRequest);
-      console.log('adding new data : ', plante.name, addResponse.statusText);
-    } catch (error) {
-      console.log(error);
-    }
+    //updating sheets in google drive
+    const addResponse = await sheets.spreadsheets.values.append(addRequest);
+    console.log('adding new data : ', plante.name, addResponse.statusText);
   });
 };
-const test = [
-  {
-    '@id': '/barley-observations/60f45352d6a5da764f40fa92',
-    '@type': 'BarleyObservation',
-    category: 'winter',
-    specificWeight: 66,
-    id: '60f45352d6a5da764f40fa92',
-    createdAt: '2021-07-18T16:14:10+00:00',
-    variety: null,
-    yield: 82,
-    humidity: 13,
-    yieldNotation: 4,
-    nitrogenQuantityUsed: 140,
-    nitrogenProductUsed: 'Ammonitrate',
-    comment: null,
-    cultivationMethod: 'conventional',
-    place: '29840 Lanildut',
-    soldVolume: 'Tout vendu',
-    sowingWeek: null,
-    coordinates: { latitude: 48.4792, longitude: -4.7397 },
-    image: null,
-  },
-  {
-    '@id': '/barley-observations/60f45352d6a5da764f40fa92',
-    '@type': 'BarleyObservation',
-    category: 'winter',
-    specificWeight: 66,
-    id: '60f45352d6a5da764f40fa92',
-    createdAt: '2021-07-18T16:14:10+00:00',
-    variety: null,
-    yield: 82,
-    humidity: 13,
-    yieldNotation: 4,
-    nitrogenQuantityUsed: 140,
-    nitrogenProductUsed: 'Ammonitrate',
-    comment: null,
-    cultivationMethod: 'conventional',
-    place: '29840 Lanildut',
-    soldVolume: 'Tout vendu',
-    sowingWeek: null,
-    coordinates: { latitude: 48.4792, longitude: -4.7397 },
-    image: null,
-  },
-];
 
 const run = async () => {
   plantes = await scanMap(plantes);
